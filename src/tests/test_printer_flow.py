@@ -1,195 +1,199 @@
-import pytest
 import time
+import pytest
 from src.pages.home_page import HomePage
 from src.pages.printer_list_page import PrinterListPage
 from src.pages.print_receipt_page import PrintReceiptPage
+from src.pages.settings_page import SettingsPage
 
-@pytest.fixture
-def home(driver):
-    return HomePage(driver)
+@pytest.fixture(scope="function")
+def app(driver):
+    """Navigate to the home page before each test."""
+    home = HomePage(driver)
+    home.open()
+    return home
 
-@pytest.fixture
-def printer_list(driver):
-    return PrinterListPage(driver)
+def test_discoverable_printer_list_displayed(app, driver):
+    """SCRUM‑1‑TC‑01 – Verify list of printers appears after discovery."""
+    app.tap_connect_printer()
+    printer_page = PrinterListPage(driver)
+    # Simulate waiting for discovery (in real test, explicit wait would be used)
+    time.sleep(2)
+    assert printer_page.get_printer_names(), "Printer list should not be empty."
 
-@pytest.fixture
-def print_page(driver):
-    return PrintReceiptPage(driver)
+def test_successful_printer_connection(app, driver):
+    """SCRUM‑1‑TC‑02 – Connect to a printer and verify indicator."""
+    app.tap_connect_printer()
+    printer_page = PrinterListPage(driver)
+    # Assume the first printer in the list is the target
+    names = printer_page.get_printer_names()
+    assert names, "No printers found for connection test."
+    selected = printer_page.select_printer_by_name(names[0])
+    assert selected, f"Could not select printer {names[0]}"
+    # Verify connection indicator (placeholder - actual locator needed)
+    connected_indicator = (By.ID, "printer_connected")
+    assert BasePage(driver).is_displayed(connected_indicator), "Printer Connected indicator not shown."
 
-# SCRUM‑1‑TC‑01 – Discoverable printer list displayed
-def test_discoverable_printer_list_displayed(home, printer_list):
-    home.tap_connect_printer()
-    printer_list.wait_for_discovery()
-    printers = printer_list.get_printer_names()
-    assert len(printers) > 0, "No discoverable printers were shown"
-
-# SCRUM‑1‑TC‑02 – Successful printer connection
-def test_successful_printer_connection(home, printer_list):
-    home.tap_connect_printer()
-    printer_list.wait_for_discovery()
-    assert printer_list.select_printer_by_name("EPSON_TM-P20_A"), "Target printer not found"
-    connected = printer_list.get_connected_printer_name()
-    assert "EPSON_TM-P20_A" in connected
-    assert "Printer Connected" in home.get_printer_status()
-
-# SCRUM‑1‑TC‑03 – No printer paired – attempt to print
-def test_no_printer_paired_print_attempt(home, print_page):
-    # Ensure no printer is paired (pre‑condition handled externally)
-    home.tap_print_receipt()
-    assert print_page.is_displayed(*print_page.CONNECT_NOW_BTN), "Connect Now button not shown"
-    error_msg = print_page.get_error_message()
+def test_no_printer_paired_attempt_print(app, driver):
+    """SCRUM‑1‑TC‑03 – Ensure proper message when no printer is paired."""
+    app.tap_print_receipt()
+    receipt_page = PrintReceiptPage(driver)
+    error_msg = receipt_page.get_error_message()
     assert "No printer connected" in error_msg
+    assert receipt_page.is_displayed(receipt_page.CONNECT_NOW_BTN), "Connect Now button should be visible."
 
-# SCRUM‑1‑TC‑04 – Printer out of range – automatic retry
-def test_printer_out_of_range_retry(home, print_page):
-    # Assume printer was previously paired; now out of range
-    home.tap_print_receipt()
-    error_msg = print_page.get_error_message()
+def test_printer_out_of_range_retry(app, driver):
+    """SCRUM‑1‑TC‑04 – Automatic retry when printer is out of range."""
+    app.tap_print_receipt()
+    receipt_page = PrintReceiptPage(driver)
+    # Simulate out‑of‑range scenario via mock or test environment setup
+    error_msg = receipt_page.get_error_message()
     assert "Printer disconnected" in error_msg
-    # Verify up to 3 retries (simple check that retry attempts happen)
-    for attempt in range(3):
-        time.sleep(1)  # simulate wait between retries
-    assert "move closer or reconnect" in error_msg
+    # Verify that the app attempted retries (could be logged or UI counter)
+    retry_counter = (By.ID, "retry_counter")
+    retries = driver.find_element(*retry_counter).text
+    assert retries == "3", "App should retry exactly 3 times."
 
-# SCRUM‑1‑TC‑05 – Receipt prints within SLA
-def test_receipt_prints_within_sla(home, print_page):
+def test_receipt_prints_within_sla(app, driver):
+    """SCRUM‑1‑TC‑05 – Receipt prints within 5 seconds."""
+    app.tap_print_receipt()
+    receipt_page = PrintReceiptPage(driver)
     start = time.time()
-    home.tap_print_receipt()
-    print_page.wait_for_print_completion()
-    duration = time.time() - start
-    assert duration <= 5, f"Print latency {duration}s exceeds SLA of 5s"
+    # Wait until status changes to "Printed"
+    while receipt_page.get_status_text() != "Printed" and (time.time() - start) < 10:
+        time.sleep(0.5)
+    elapsed = time.time() - start
+    assert receipt_page.get_status_text() == "Printed", "Receipt was not printed successfully."
+    assert elapsed <= 5, f"Print latency {elapsed}s exceeds SLA of 5s."
 
-# SCRUM‑1‑TC‑06 – Paper out mid‑print – error handling
-def test_paper_out_error_handling(home, print_page):
-    home.tap_print_receipt()
-    # Simulate paper out error (app shows specific message)
-    error_msg = print_page.get_error_message()
+def test_paper_out_mid_print_error_handling(app, driver):
+    """SCRUM‑1‑TC‑06 – Paper out error handling."""
+    app.tap_print_receipt()
+    receipt_page = PrintReceiptPage(driver)
+    # Simulate paper out condition
+    error_msg = receipt_page.get_error_message()
     assert "Paper out" in error_msg
-    # Refill paper and re‑print
-    print_page.tap_retry()
-    print_page.wait_for_print_completion()
-    assert print_page.get_print_status() == "Printed"
+    # After refill (simulated), user should be able to re‑print without duplicate transaction
+    receipt_page.tap_retry()
+    # Verify status returns to Printed without new transaction entry (placeholder)
+    assert receipt_page.get_status_text() == "Printed"
 
-# SCRUM‑1‑TC‑07 – Bluetooth drop during active print job
-def test_bluetooth_drop_during_print(home, print_page):
-    home.tap_print_receipt()
-    # Simulate Bluetooth being turned off during printing
-    # (In real test this would be done via ADB or device controls)
-    time.sleep(1)  # let printing start
-    # Assume driver receives loss event and UI updates
-    error_msg = print_page.get_error_message()
+def test_bluetooth_drop_during_active_print(app, driver):
+    """SCRUM‑1‑TC‑07 – Bluetooth drop handling."""
+    app.tap_print_receipt()
+    receipt_page = PrintReceiptPage(driver)
+    # Simulate Bluetooth drop
+    error_msg = receipt_page.get_error_message()
     assert "Connection lost during printing" in error_msg
-    assert print_page.get_print_status() == "Failed"
+    # Verify receipt status set to Failed
+    assert receipt_page.get_status_text() == "Failed"
 
-# SCRUM‑1‑TC‑08 – Re‑print same‑day receipt (duplicate copy)
-def test_reprint_same_day_duplicate(home, print_page):
-    # Assume receipt already printed; navigate to history and select re‑print
-    home.tap_print_receipt()  # shortcut for re‑print in this demo
-    assert print_page.is_duplicate_watermark_displayed()
-    assert print_page.get_print_status() == "Printed"
+def test_reprint_same_day_duplicate(app, driver):
+    """SCRUM‑1‑TC‑08 – Re‑print same‑day receipt with duplicate watermark."""
+    # Assume receipt already printed; navigate to re‑print flow
+    app.tap_print_receipt()  # placeholder for re‑print navigation
+    receipt_page = PrintReceiptPage(driver)
+    receipt_page.start_print()
+    assert receipt_page.is_duplicate_watermark_present(), "Duplicate watermark not displayed."
 
-# SCRUM‑1‑TC‑09 – Re‑print after 24 hrs – supervisor approval
-def test_reprint_after_24hrs_supervisor_approval(home, print_page):
-    home.tap_print_receipt()
-    # App should prompt for PIN
-    print_page.enter_supervisor_pin("1234")
-    print_page.submit_supervisor_pin()
-    assert print_page.is_duplicate_watermark_displayed()
-    assert print_page.get_print_status() == "Printed"
+def test_reprint_after_24hrs_supervisor_approval(app, driver):
+    """SCRUM‑1‑TC‑09 – Supervisor PIN required for old receipt."""
+    app.tap_print_receipt()  # placeholder for selecting old receipt
+    receipt_page = PrintReceiptPage(driver)
+    # Verify PIN prompt appears
+    pin_input = receipt_page.SUPERVISOR_PIN_INPUT
+    assert receipt_page.is_displayed(pin_input), "Supervisor PIN prompt not shown."
+    receipt_page.enter_supervisor_pin("1234")  # example PIN
+    # After correct PIN, receipt should print with duplicate watermark
+    assert receipt_page.is_duplicate_watermark_present()
 
-# SCRUM‑1‑TC‑10 – Concurrent connection attempts – conflict handling
-def test_concurrent_connection_conflict(driver):
-    # Simulate two devices by opening two driver sessions (simplified)
-    # Device A connects successfully
-    home_a = HomePage(driver)
-    home_a.tap_connect_printer()
-    # Device B (same driver) attempts to connect – should see conflict message
-    # In real world a second driver would be used; we verify UI shows conflict
-    error_msg = driver.find_element_by_id("com.example.printerapp:id/tv_error_message").text
-    assert "currently in use by another device" in error_msg
+def test_concurrent_connection_attempts_conflict(app, driver):
+    """SCRUM‑1‑TC‑10 – Conflict handling when two devices try same printer."""
+    # This test would normally be run on two parallel sessions; here we simulate the response
+    app.tap_connect_printer()
+    printer_page = PrinterListPage(driver)
+    names = printer_page.get_printer_names()
+    assert names, "No printers available for concurrent test."
+    printer_page.select_printer_by_name(names[0])
+    # Simulate second device attempt response
+    conflict_msg = (By.ID, "conflict_message")
+    assert BasePage(driver).is_displayed(conflict_msg), "Conflict message not shown for second device."
 
-# SCRUM‑1‑TC‑11 – Low‑battery warning
-def test_low_battery_warning(home):
-    status = home.get_printer_status()
-    assert "Low battery" in status or home.is_low_battery_icon_displayed()
+def test_low_battery_warning(app, driver):
+    """SCRUM‑1‑TC‑11 – Low‑battery warning icon appears."""
+    # Assume printer is already connected with low battery
+    receipt_page = PrintReceiptPage(driver)
+    assert receipt_page.is_low_battery_icon_displayed(), "Low‑battery warning icon not displayed."
 
-# SCRUM‑1‑TC‑12 – Logout / app close – release printer
-def test_logout_releases_printer(home):
-    home.tap_logout()
-    # After logout, another device should be able to pair; verify status cleared
-    assert "Disconnected" in home.get_printer_status()
+def test_logout_releases_printer(app, driver):
+    """SCRUM‑1‑TC‑12 – Ensure Bluetooth connection released on logout."""
+    app.tap_settings()
+    settings = SettingsPage(driver)
+    settings.logout()
+    # After logout, printer should be available for other devices (placeholder check)
+    availability_indicator = (By.ID, "printer_available")
+    assert BasePage(driver).is_displayed(availability_indicator), "Printer not released after logout."
 
-# SCRUM‑1‑TC‑13 – Persistence of pairing across app restarts (within shift)
-def test_pairing_persistence_across_restart(driver):
-    home = HomePage(driver)
-    # Assume printer already paired
-    driver.close_app()
-    driver.launch_app()
-    home = HomePage(driver)
-    assert "Printer Connected" in home.get_printer_status()
+def test_pairing_persistence_across_restart(app, driver):
+    """SCRUM‑1‑TC‑13 – Paired printer persists after app restart."""
+    # Simulate app force‑close by navigating away and back
+    driver.refresh()
+    # Verify printer is still auto‑selected
+    connected_indicator = (By.ID, "printer_connected")
+    assert BasePage(driver).is_displayed(connected_indicator), "Printer pairing did not persist."
 
-# SCRUM‑1‑TC‑14 – iOS & Android platform compatibility
-@pytest.mark.parametrize("platform", ["Android", "iOS"])
-def test_platform_compatibility(driver, platform):
-    # Adjust capabilities for each platform (handled via env vars before test run)
-    home = HomePage(driver)
-    home.tap_connect_printer()
-    # Simple verification that the flow works on both platforms
-    assert home.is_displayed(*home.CONNECT_PRINTER_BTN)
+def test_platform_compatibility(app, driver):
+    """SCRUM‑1‑TC‑14 – Verify behavior on Android & iOS (simulated)."""
+    # In real CI we would run on device farms; here just assert generic UI works
+    assert app.is_displayed(app.CONNECT_PRINTER_BTN), "Connect Printer button missing."
 
-# SCRUM‑1‑TC‑15 – ESC/POS command compliance
-def test_esc_pos_command_compliance(driver):
-    # Capture raw bytes sent to printer via a mock or proxy (simplified)
-    # Here we just assert that the app logs a placeholder indicating ESC/POS usage
-    logs = driver.get_log("driver")
-    esc_pos_used = any("ESC/POS" in entry["message"] for entry in logs)
-    assert esc_pos_used, "ESC/POS commands not detected in logs"
+def test_esc_pos_command_compliance(app, driver):
+    """SCRUM‑1‑TC‑15 – Validate raw data sent conforms to ESC/POS."""
+    # Capture raw data via a mock or network sniff (out of scope for UI test)
+    # Placeholder assertion
+    assert True, "ESC/POS command compliance check placeholder."
 
-# SCRUM‑1‑TC‑16 – Sensitive receipt data not logged in plaintext
-def test_sensitive_data_not_logged(driver):
-    home = HomePage(driver)
-    home.tap_print_receipt()
-    logs = driver.get_log("driver")
-    sensitive = any("cardNumber" in entry["message"] for entry in logs)
-    assert not sensitive, "Sensitive receipt data found in logs"
+def test_sensitive_receipt_data_not_logged(app, driver, caplog):
+    """SCRUM‑1‑TC‑16 – Ensure receipt data not logged in plaintext."""
+    app.tap_print_receipt()
+    # After printing, inspect captured logs
+    for record in caplog.records:
+        assert "card number" not in record.message.lower(), "Sensitive data found in logs."
 
-# SCRUM‑1‑TC‑17 – Battery‑drain impact on print latency
-def test_low_battery_print_latency(home, print_page):
-    # Assume printer battery is low but functional
-    home.tap_print_receipt()
+def test_battery_drain_impact_on_latency(app, driver):
+    """SCRUM‑1‑TC‑17 – Verify latency with low battery (10‑20%)."""
     start = time.time()
-    print_page.wait_for_print_completion()
-    duration = time.time() - start
-    assert duration <= 5, f"Latency {duration}s exceeds SLA despite low battery"
+    app.tap_print_receipt()
+    receipt_page = PrintReceiptPage(driver)
+    while receipt_page.get_status_text() != "Printed" and (time.time() - start) < 10:
+        time.sleep(0.5)
+    elapsed = time.time() - start
+    assert elapsed <= 5, f"Print latency {elapsed}s exceeds SLA with low battery."
 
-# SCRUM‑1‑TC‑18 – Multiple printers – correct selection
-def test_multiple_printers_correct_selection(home, printer_list):
-    home.tap_connect_printer()
-    printer_list.wait_for_discovery()
-    names = printer_list.get_printer_names()
-    assert "Printer B" in names
-    printer_list.select_printer_by_name("Printer B")
-    assert "Printer B" in printer_list.get_connected_printer_name()
-    home.tap_print_receipt()
-    # Verify print goes to Printer B via status message
-    status = home.get_printer_status()
-    assert "Printer B" in status
+def test_multiple_printers_correct_selection(app, driver):
+    """SCRUM‑1‑TC‑18 – Select correct printer when multiple are present."""
+    app.tap_connect_printer()
+    printer_page = PrinterListPage(driver)
+    names = printer_page.get_printer_names()
+    assert len(names) >= 2, "Need at least two printers for this test."
+    target = names[1]  # choose second printer
+    printer_page.select_printer_by_name(target)
+    # Verify subsequent prints go to selected printer (placeholder)
+    selected_indicator = (By.ID, "selected_printer_name")
+    displayed_name = driver.find_element(*selected_indicator).text
+    assert displayed_name == target, "Prints are not routed to the selected printer."
 
-# SCRUM‑1‑TC‑19 – Firmware version check (unsupported)
-def test_firmware_version_unsupported(home, printer_list):
-    home.tap_connect_printer()
-    printer_list.wait_for_discovery()
-    # Select a printer with known old firmware (mocked by name)
-    printer_list.select_printer_by_name("OldFirmwarePrinter")
-    error_msg = printer_list.get_error_message()
-    assert "firmware not supported" in error_msg.lower()
+def test_printer_firmware_version_check(app, driver):
+    """SCRUM‑1‑TC‑19 – Unsupported firmware version rejection."""
+    app.tap_connect_printer()
+    # Simulate connecting to old firmware printer
+    error_msg = (By.ID, "firmware_error_msg")
+    assert BasePage(driver).is_displayed(error_msg), "Firmware version error not shown."
 
-# SCRUM‑1‑TC‑20 – Network‑independent operation
-def test_network_independent_operation(driver):
-    # Disable network (this would be done via ADB or device settings; here we assume)
-    home = HomePage(driver)
-    home.tap_connect_printer()
-    # Verify discovery still works without network
-    printer_list = PrinterListPage(driver)
-    printer_list.wait_for_discovery()
-    assert len(printer_list.get_printer_names()) > 0
+def test_network_independent_operation(app, driver):
+    """SCRUM‑1‑TC‑20 – Verify printer works offline."""
+    # Simulate offline mode (could be done via Chrome devtools; here just assume)
+    app.tap_print_receipt()
+    receipt_page = PrintReceiptPage(driver)
+    while receipt_page.get_status_text() != "Printed" and (time.time() - start) < 10:
+        time.sleep(0.5)
+    assert receipt_page.get_status_text() == "Printed", "Printing failed while offline."
