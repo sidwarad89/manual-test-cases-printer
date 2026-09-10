@@ -1,3 +1,8 @@
-I’m happy to help you set up the Selenium Python automation framework, but I need the specific test scenarios you’d like to automate (e.g., “Verify that a user can log in with valid credentials,” “Search for a product and add it to the cart,” etc.). 
+Sure thing! To give you the most useful and accurate Selenium + Python code, could you please share the specific test scenarios you’d like automated? For example:
 
-Could you please provide the list of test cases (or a brief description of each) you want the scripts for? Once I have those details, I’ll generate the corresponding page‑object classes, test files, and the GitHub Actions workflow for you.
+* **Login flow** – username, password fields, expected post‑login URL or element
+* **Search functionality** – search box locator, query string, expected results
+* **Form submission** – field locators, data to enter, success message verification
+* **Navigation checks** – menu items, pages to visit, breadcrumbs, etc.
+
+Just let me know the pages, key elements (ids, classes, CSS selectors, XPaths, etc.), and the assertions you need, and I’ll generate a full POM‑structured project (page objects, test classes, test data, and a GitHub Actions workflow) for you.
