@@ -2,7 +2,9 @@ from selenium.webdriver.common.by import By
 from .base_page import BasePage
 
 class SettingsPage(BasePage):
-    LOGOUT_BTN = (By.ID, "com.example.printerapp:id/btn_logout")
+    """Settings and logout page."""
 
-    def tap_logout(self):
-        self.click(*self.LOGOUT_BTN)
+    LOGOUT_BTN = (By.ID, "logout_btn")
+
+    def logout(self):
+        self.click(self.LOGOUT_BTN)
