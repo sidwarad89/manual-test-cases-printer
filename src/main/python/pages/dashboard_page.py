@@ -1,22 +1,24 @@
-"""Dashboard page object model."""
 from selenium.webdriver.common.by import By
-from .base_page import BasePage
+from selenium.webdriver.remote.webdriver import WebDriver
 
 
-class DashboardPage(BasePage):
-    LOGOUT_BUTTON = (By.ID, "logout")
-    WELCOME_BANNER = (By.CSS_SELECTOR, ".welcome")
+class DashboardPage:
+    """Page Object Model for the dashboard page."""
 
-    def __init__(self, driver):
-        super().__init__(driver)
+    def __init__(self, driver: WebDriver):
+        self.driver = driver
+        self.welcome_banner = (By.ID, "welcome-banner")
+        self.logout_button = (By.ID, "logout")
 
     def is_loaded(self) -> bool:
-        """Simple check that dashboard loaded by verifying the welcome banner."""
-        try:
-            self.find(self.WELCOME_BANNER)
-            return True
-        except AssertionError:
-            return False
+        """Return True if the dashboard is loaded (welcome banner visible)."""
+        elements = self.driver.find_elements(*self.welcome_banner)
+        return len(elements) > 0
+
+    def get_welcome_text(self) -> str:
+        """Return the welcome banner text."""
+        return self.driver.find_element(*self.welcome_banner).text
 
     def logout(self):
-        self.click(self.LOGOUT_BUTTON)
+        """Click the logout button."""
+        self.driver.find_element(*self.logout_button).click()
