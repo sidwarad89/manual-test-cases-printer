@@ -1,1 +1,3 @@
-It looks like the test case details didn’t come through in your last message. Could you please provide the specific scenarios you’d like automated (e.g., login flow, form submission, navigation checks, etc.)? Once I have the test steps and any relevant element identifiers, I’ll generate the Selenium Python POM scripts for you.
+I’m happy to help you generate the Selenium + Python Page Object Model structure and a GitHub Actions workflow, but I need the specific test cases you’d like to automate (e.g., “Valid login redirects to the dashboard”, “Search for a product and verify results”, etc.).  
+
+Could you please provide the test case details (steps, expected outcomes, and any element locators you have) so I can create the appropriate page objects and test scripts for you?
