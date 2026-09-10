@@ -1,0 +1,1 @@
+It looks like the test case details didn’t come through in your last message. Could you please provide the specific scenarios you’d like automated (e.g., login flow, form submission, navigation checks, etc.)? Once I have the test steps and any relevant element identifiers, I’ll generate the Selenium Python POM scripts for you.
