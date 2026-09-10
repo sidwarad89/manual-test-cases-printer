@@ -1,34 +1,29 @@
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 class BasePage:
-    """
-    Base class for all page objects. Provides common Selenium/Appium utilities.
-    """
+    """Base class that all page objects inherit from."""
+
     def __init__(self, driver):
         self.driver = driver
-        self.wait = WebDriverWait(driver, 20)
+        self.wait = WebDriverWait(driver, 10)
 
-    def find(self, by, locator):
-        return self.wait.until(EC.presence_of_element_located((by, locator)))
+    def find(self, locator):
+        """Find element using a locator tuple (By, value)."""
+        return self.wait.until(EC.visibility_of_element_located(locator))
 
-    def click(self, by, locator):
-        element = self.find(by, locator)
-        element.click()
-        return element
+    def click(self, locator):
+        """Click on element located by locator."""
+        self.find(locator).click()
 
-    def send_keys(self, by, locator, text):
-        element = self.find(by, locator)
-        element.clear()
-        element.send_keys(text)
-        return element
+    def send_keys(self, locator, text):
+        """Send text to element located by locator."""
+        self.find(locator).clear()
+        self.find(locator).send_keys(text)
 
-    def is_displayed(self, by, locator):
+    def is_displayed(self, locator):
+        """Return True if element is visible."""
         try:
-            return self.find(by, locator).is_displayed()
+            return self.find(locator).is_displayed()
         except:
             return False
-
-    def get_text(self, by, locator):
-        return self.find(by, locator).text
