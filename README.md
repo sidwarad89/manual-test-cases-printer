@@ -1,43 +1,41 @@
-# Printer POS Automation
+# POS Printer Automation Suite
 
-Automated UI test suite for the POS application that interacts with Bluetooth thermal printers.  
-The project uses **Selenium WebDriver** with **TestNG** and follows the Page Object Model (POM) pattern.
+This repository contains a Selenium‑based test automation framework (Python + PyTest) that validates the POS printer integration scenarios described in Jira **SCRUM‑1**.
 
-## Project structure
+## Project Layout
 
 project-root/
+├── requirements.txt          # Python dependencies
+├── conftest.py               # PyTest fixtures (WebDriver)
 ├── src/
-│   ├── main/java/com/example/pages/
-│   │   ├── BasePage.java
-│   │   ├── HomePage.java
-│   │   ├── PrinterDiscoveryPage.java
-│   │   ├── PrinterConnectionPage.java
-│   │   ├── ReceiptPage.java
-│   │   └── SettingsPage.java
-│   └── test/java/com/example/tests/
-│       ├── BaseTest.java
-│       ├── SCRUM1TC01Test.java
-│       ├── ... (one class per test case)
-│       └── SCRUM1TC20Test.java
-├── src/test/resources/
-│   └── testdata.json
-├── pom.xml
-└── .github/workflows/run-tests.yml
+│   ├── pages/
+│   │   ├── base_page.py
+│   │   ├── home_page.py
+│   │   ├── printer_list_page.py
+│   │   ├── print_receipt_page.py
+│   │   └── settings_page.py
+│   └── tests/
+│       └── test_printer_flow.py
+└── .github/
+    └── workflows/
+        └── run-tests.yml   # GitHub Actions CI workflow
 
-## Prerequisites
+## How to Run Locally
 
-- JDK 17+
-- Maven 3.9+
-- Chrome browser + matching ChromeDriver (automatically resolved by Selenium Manager)
+1. Install dependencies  
 
-## Running the tests locally
+   pip install -r requirements.txt
 
-mvn clean test
+2. Execute the test suite  
 
-## CI
+   pytest -s src/tests
 
-A GitHub Actions workflow (`.github/workflows/run-tests.yml`) runs the full suite on every push.
+The tests run headlessly using Chrome; you can modify `conftest.py` to use a different browser or to run with a UI.
 
----
+## CI Integration
 
-Enjoy testing! 🚀
+The workflow `.github/workflows/run-tests.yml` triggers on every push to any branch, sets up Python 3.11, installs the required packages, and runs the full PyTest suite. No additional configuration is required.
+
+--- 
+
+Feel free to extend the
