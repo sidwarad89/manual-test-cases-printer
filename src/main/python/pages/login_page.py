@@ -1,21 +1,24 @@
-"""Login page object model."""
 from selenium.webdriver.common.by import By
-from .base_page import BasePage
+from selenium.webdriver.remote.webdriver import WebDriver
 
 
-class LoginPage(BasePage):
-    USERNAME_INPUT = (By.ID, "username")
-    PASSWORD_INPUT = (By.ID, "password")
-    SUBMIT_BUTTON = (By.CSS_SELECTOR, "button[type='submit']")
-    ERROR_MESSAGE = (By.CSS_SELECTOR, ".error")
+class LoginPage:
+    """Page Object Model for the login page."""
 
-    def __init__(self, driver):
-        super().__init__(driver)
+    def __init__(self, driver: WebDriver):
+        self.driver = driver
+        self.username_input = (By.ID, "username")
+        self.password_input = (By.ID, "password")
+        self.submit_button = (By.CSS_SELECTOR, "button[type='submit']")
+
+    def open(self, url: str):
+        """Navigate to the login page."""
+        self.driver.get(url)
 
     def login(self, username: str, password: str):
-        self.type(self.USERNAME_INPUT, username)
-        self.type(self.PASSWORD_INPUT, password)
-        self.click(self.SUBMIT_BUTTON)
-
-    def get_error_message(self):
-        return self.find(self.ERROR_MESSAGE).text
+        """Perform login with supplied credentials."""
+        self.driver.find_element(*self.username_input).clear()
+        self.driver.find_element(*self.username_input).send_keys(username)
+        self.driver.find_element(*self.password_input).clear()
+        self.driver.find_element(*self.password_input).send_keys(password)
+        self.driver.find_element(*self.submit_button).click()
