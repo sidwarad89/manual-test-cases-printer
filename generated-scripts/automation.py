@@ -1,3 +1,3 @@
-I’m happy to help you generate the Selenium + Python Page Object Model structure and a GitHub Actions workflow, but I need the specific test cases you’d like to automate (e.g., “Valid login redirects to the dashboard”, “Search for a product and verify results”, etc.).  
+I’m happy to help you set up the Selenium Python automation framework, but I need the specific test scenarios you’d like to automate (e.g., “Verify that a user can log in with valid credentials,” “Search for a product and add it to the cart,” etc.). 
 
-Could you please provide the test case details (steps, expected outcomes, and any element locators you have) so I can create the appropriate page objects and test scripts for you?
+Could you please provide the list of test cases (or a brief description of each) you want the scripts for? Once I have those details, I’ll generate the corresponding page‑object classes, test files, and the GitHub Actions workflow for you.
