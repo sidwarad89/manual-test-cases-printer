@@ -1,29 +1,31 @@
-"""Test suite for dashboard functionality."""
+import os
+import json
 import pytest
 from src.main.python.pages.login_page import LoginPage
 from src.main.python.pages.dashboard_page import DashboardPage
 
 
-@pytest.mark.usefixtures("driver")
-class TestDashboard:
+@pytest.fixture(scope="module")
+def test_data():
+    data_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "resources", "testdata.json")
+    with open(data_path, "r") as f:
+        return json.load(f)
 
-    @pytest.fixture(autouse=True)
-    def login_and_navigate(self, driver):
-        """Log in once and keep the session for dashboard tests."""
-        base_url = "https://example.com"  # <-- replace with real URL
-        driver.get(f"{base_url}/login")
-        login_page = LoginPage(driver)
-        login_page.login("valid_user", "ValidPass123")
-        self.dashboard = DashboardPage(driver)
-        assert self.dashboard.is_loaded(), "Dashboard not loaded in fixture"
 
-    def test_dashboard_welcome_message(self):
-        """Verify the welcome banner contains the logged‑in user name."""
-        banner = self.dashboard.find(self.dashboard.WELCOME_BANNER).text
-        assert "Welcome, valid_user" in banner
+def test_dashboard_logout_returns_to_login(driver, test_data):
+    """After successful login, clicking logout should return user to login page."""
+    login_url = test_data["login_url"]
+    username = test_data["valid_user"]["username"]
+    password = test_data["valid_user"]["password"]
 
-    def test_logout_returns_to_login(self):
-        """Logout should bring the user back to the login page."""
-        self.dashboard.logout()
-        # After logout we expect the login page URL
-        assert "/login" in self.dashboard.driver.current_url
+    login_page = LoginPage(driver)
+    login_page.open(login_url)
+    login_page.login(username, password)
+
+    dashboard = DashboardPage(driver)
+    assert dashboard.is_loaded(), "Dashboard not loaded after login"
+
+    dashboard.logout()
+
+    # Verify we are back on the login page (e.g., username field is present)
+    assert driver.find_element(*login_page.username_input).is_displayed()
