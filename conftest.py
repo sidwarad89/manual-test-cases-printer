@@ -1,25 +1,31 @@
-import pytest
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service as ChromeService
-import yaml
+import json
 import os
+import pytest
+from appium import webdriver
+from appium.options.common import AppiumOptions
 
-@pytest.fixture(scope="session")
-def config():
-    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
+# Load capabilities from JSON files
+def load_caps(platform: str):
+    caps_path = os.path.join(os.path.dirname(__file__), "capabilities", f"{platform}.json")
+    with open(caps_path) as f:
+        return json.load(f)
 
-@pytest.fixture(scope="function")
-def driver(config):
-    options = webdriver.ChromeOptions()
-    # headless mode for CI, can be overridden via config
-    if config.get("headless", True):
-        options.add_argument("--headless=new")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-    driver.implicitly_wait(config.get("implicit_wait", 5))
+ANDROID_CAPS = load_caps("android")
+IOS_CAPS = load_caps("ios")
+
+@pytest.fixture(params=["android", "ios"])
+def driver(request):
+    platform = request.param
+    caps = ANDROID_CAPS if platform == "android" else IOS_CAPS
+
+    # Initialize Appium Options and load capabilities
+    options = AppiumOptions()
+    options.load_capabilities(caps)
+
+    # Assuming Appium server is running locally; adjust URL if needed
+    driver = webdriver.Remote("http://localhost:4723/wd/hub", options=options)
+    driver.implicitly_wait(10)  # default implicit wait
+
     yield driver
+
     driver.quit()
