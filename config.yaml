@@ -1,3 +1,7 @@
-headless: true
-implicit_wait: 5
-base_url: "http://localhost:8080"
+platformName: Android
+deviceName: Android Emulator
+automationName: UiAutomator2
+appPackage: com.example.posapp
+appActivity: .MainActivity
+noReset: true
+newCommandTimeout: 300
