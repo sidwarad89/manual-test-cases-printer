@@ -1,13 +1,15 @@
-name: Run Android Selenium Tests
+name: Run Android UI Tests
 
 on:
   push:
-    branches: [ "**" ]
+    branches:
+      - '**'
 
 jobs:
-  android-tests:
+  test:
     runs-on: ubuntu-latest
-
+    env:
+      DISPLAY: ':99'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -15,46 +17,46 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.11'
 
-      - name: Install system dependencies
+      - name: Install system dependencies (ffmpeg & xvfb)
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb ffmpeg
-
-      - name: Start virtual X server
-        run: |
-          Xvfb :99 -screen 0 1920x1080x24 &
-          echo "DISPLAY=:99" >> $GITHUB_ENV
+          sudo apt-get install -y ffmpeg xvfb
 
       - name: Install Python dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Record test run
-        id: record
+      - name: Start virtual X server
         run: |
-          ffmpeg -y -video_size 1920x1080 -framerate 15 -f x11grab -i :99 -c:v libx264 -preset veryfast -crf 23 test-run.mp4 &
-          echo "FFMPEG_PID=$!" >> $GITHUB_ENV
+          Xvfb ${{ env.DISPLAY }} -screen 0 1280x720x24 &
+          # Give Xvfb a moment to start
+          sleep 3
 
-      - name: Run tests
-        env:
-          DISPLAY: ":99"
+      - name: Start video recording
+        id: start_recording
         run: |
-          source venv/bin/activate
-          pytest src/test/python/tests --junitxml=report.xml
-          # Stop ffmpeg after tests finish
-          kill $FFMPEG_PID
+          ffmpeg -y -video_size 1280x720 -framerate 25 -f x11grab -i ${{ env.DISPLAY }} -c:v libx264 test-run.mp4 &
+          echo "record_pid=$!" >> $GITHUB_OUTPUT
+          # Give ffmpeg a moment to initialize
+          sleep 2
 
-      - name: Upload test video and report
+      - name: Run pytest (only test directory)
+        run: |
+          pytest src/test/python/tests -q --junitxml=reports.xml
+
+      - name: Stop video recording
         if: always()
+        run: |
+          kill ${{ steps.start_recording.outputs.record_pid }} || true
+
+      - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         with:
           name: test-artifacts
           path: |
             test-run.mp4
-            report.xml
+            reports.xml
           if-no-files-found: ignore
