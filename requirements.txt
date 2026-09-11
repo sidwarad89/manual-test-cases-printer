@@ -1,4 +1,4 @@
-appium-python-client==4.0.0
-pytest==8.2.2
-pytest-timeout==2.3.0
-# any additional libraries if needed
+appium-python-client==3.2.0
+selenium==4.23.1
+pytest==8.3.2
+pytest-html==4.1.1
