@@ -1,0 +1,10 @@
+{
+  "platformName": "Android",
+  "automationName": "UiAutomator2",
+  "deviceName": "Android Emulator",
+  "platformVersion": "12.0",
+  "appPackage": "com.example.printerapp",
+  "appActivity": ".MainActivity",
+  "autoGrantPermissions": true,
+  "newCommandTimeout": 300
+}
