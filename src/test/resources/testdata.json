@@ -1,6 +1,7 @@
 {
-  "valid_user": {
-    "username": "test_user",
-    "password": "P@ssw0rd123"
-  }
+  "documents": [
+    "TestDocument.pdf",
+    "Doc1.pdf",
+    "Doc2.pdf"
+  ]
 }
