@@ -1,0 +1,5 @@
+BASE_URL = "https://qa-agent-platform.com"
+USERNAME_DEMO = "Demo_Run"
+PASSWORD_DEMO = "Waradss8997@"
+USERNAME_SID = "Sidwarad"
+PASSWORD_SID = "Waradss8997@"
