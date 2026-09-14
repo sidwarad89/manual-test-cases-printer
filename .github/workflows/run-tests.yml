@@ -1,0 +1,70 @@
+name: Run Selenium Tests
+
+on:
+  push:
+    branches: [ "**" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DISPLAY: ":99"
+      VIDEO_FILE: "test-run.mp4"
+      Xvfb_PID_FILE: "/tmp/xvfb.pid"
+      FFmpeg_PID_FILE: "/tmp/ffmpeg.pid"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies (ffmpeg, xvfb)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg xvfb
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start Xvfb
+        run: |
+          Xvfb ${{ env.DISPLAY }} -screen 0 1920x1080x24 &
+          echo $! > ${{ env.Xvfb_PID_FILE }}
+
+      - name: Start screen recording with ffmpeg
+        run: |
+          ffmpeg -y -video_size 1920x1080 -framerate 15 -f x11grab -i ${{ env.DISPLAY }} -c:v libx264 -preset ultrafast ${{ env.VIDEO_FILE }} &
+          echo $! > ${{ env.FFmpeg_PID_FILE }}
+
+      - name: Run pytest
+        run: |
+          pytest tests/ --junitxml=report.xml
+
+      - name: Stop ffmpeg recording
+        if: always()
+        run: |
+          if [ -f "${{ env.FFmpeg_PID_FILE }}" ] && [ -s "${{ env.FFmpeg_PID_FILE }}" ]; then
+            kill $(cat ${{ env.FFmpeg_PID_FILE }}) || true
+          fi
+
+      - name: Stop Xvfb
+        if: always()
+        run: |
+          if [ -f "${{ env.Xvfb_PID_FILE }}" ] && [ -s "${{ env.Xvfb_PID_FILE }}" ]; then
+            kill $(cat ${{ env.Xvfb_PID_FILE }}) || true
+          fi
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            ${{ env.VIDEO_FILE }}
+            report.xml
+          if-no-files-found: ignore
