@@ -1,56 +1,39 @@
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webdriver import WebDriver
+from .base_page import BasePage
 
-class LoginPage:
-    USERNAME_INPUT = (By.ID, "username")
-    PASSWORD_INPUT = (By.ID, "password")
-    LOGIN_BUTTON = (By.ID, "loginBtn")
-    REMEMBER_ME_CHECKBOX = (By.ID, "rememberMe")
-    PASSWORD_ERROR = (By.XPATH, "//span[contains(@class,'error') and text()='Password is required']")
-    INVALID_CREDENTIALS_TOAST = (By.XPATH, "//div[contains(@class,'toast') and contains(text(),'Invalid credentials')]")
-    SQL_INJECTION_ERROR = (By.XPATH, "//div[contains(@class,'error') and contains(text(),'Invalid credentials')]")
-    JS_DISABLED_MESSAGE = (By.XPATH, "//div[contains(text(),'JavaScript is required')]")
-    FORGOT_PASSWORD_LINK = (By.LINK_TEXT, "Forgot Password")
-    PROFILE_ICON = (By.ID, "profileIcon")
+class LoginPage(BasePage):
+    USERNAME_INPUT = (By.CSS_SELECTOR, "[data-testid=login-username]")
+    PASSWORD_INPUT = (By.CSS_SELECTOR, "[data-testid=login-password]")
+    SUBMIT_BUTTON = (By.CSS_SELECTOR, "[data-testid=login-submit]")
+    ERROR_MESSAGE = (By.CSS_SELECTOR, "[data-testid=login-error]")
+    PASSWORD_TOGGLE = (By.CSS_SELECTOR, "[data-testid=login-password-toggle]")
+    FORGOT_LINK = (By.CSS_SELECTOR, "[data-testid=forgot-password-link]")
 
-    def __init__(self, driver: WebDriver):
-        self.driver = driver
+    def open(self, base_url):
+        self.driver.get(base_url)
 
-    def enter_username(self, username: str):
-        self.driver.find_element(*self.USERNAME_INPUT).clear()
-        self.driver.find_element(*self.USERNAME_INPUT).send_keys(username)
+    def dismiss_welcome_splash(self):
+        # Attempt to close a possible welcome splash; ignore if not present
+        try:
+            splash_close = (By.CSS_SELECTOR, "[data-testid=welcome-splash-close]")
+            self.click(splash_close)
+        except Exception:
+            pass
 
-    def enter_password(self, password: str):
-        self.driver.find_element(*self.PASSWORD_INPUT).clear()
-        self.driver.find_element(*self.PASSWORD_INPUT).send_keys(password)
+    def login(self, username, password):
+        self.type(self.USERNAME_INPUT, username)
+        self.type(self.PASSWORD_INPUT, password)
+        self.click(self.SUBMIT_BUTTON)
 
-    def click_login(self):
-        self.driver.find_element(*self.LOGIN_BUTTON).click()
+    def get_error(self):
+        return self.get_text(self.ERROR_MESSAGE)
 
-    def toggle_remember_me(self):
-        self.driver.find_element(*self.REMEMBER_ME_CHECKBOX).click()
+    def toggle_password_visibility(self):
+        self.click(self.PASSWORD_TOGGLE)
 
-    def get_password_error(self):
-        return self.driver.find_element(*self.PASSWORD_ERROR).text
-
-    def is_invalid_credentials_toast_present(self):
-        elems = self.driver.find_elements(*self.INVALID_CREDENTIALS_TOAST)
-        return len(elems) > 0
-
-    def is_sql_injection_error_present(self):
-        elems = self.driver.find_elements(*self.SQL_INJECTION_ERROR)
-        return len(elems) > 0
-
-    def is_js_disabled_message_present(self):
-        elems = self.driver.find_elements(*self.JS_DISABLED_MESSAGE)
-        return len(elems) > 0
+    def get_password_field_type(self):
+        elem = self.wait_for_element(self.PASSWORD_INPUT)
+        return elem.get_attribute("type")
 
     def click_forgot_password(self):
-        self.driver.find_element(*self.FORGOT_PASSWORD_LINK).click()
-
-    def is_profile_icon_visible(self):
-        elems = self.driver.find_elements(*self.PROFILE_ICON)
-        return len(elems) > 0
-
-    def get_login_button_state(self):
-        return self.driver.find_element(*self.LOGIN_BUTTON).is_enabled()
+        self.click(self.FORGOT_LINK)
