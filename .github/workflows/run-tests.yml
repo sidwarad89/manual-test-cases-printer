@@ -81,3 +81,35 @@ jobs:
             reports/
             target/surefire-reports/
           if-no-files-found: ignore
+      - name: Report result to QA Agent Builder
+        if: always()
+        continue-on-error: true
+        env:
+          QA_AGENT_TOKEN: ${{ secrets.QA_AGENT_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
+          CALLBACK_URL: https://qa-agent-platform.onrender.com/api/ci/result
+        run: |
+          if [ -z "$QA_AGENT_TOKEN" ]; then
+            echo 'No QA_AGENT_TOKEN secret set - skipping report.'; exit 0
+          fi
+          tail -c 8000 ci-output.log > ci-tail.txt 2>/dev/null || echo 'no log captured' > ci-tail.txt
+          if [ "$JOB_STATUS" = "success" ]; then export STATUS=success; else export STATUS=failure; fi
+          python3 - > payload.json <<'PYEOF'
+          import json, os
+          server = os.environ.get('GITHUB_SERVER_URL', '')
+          repo = os.environ.get('GITHUB_REPOSITORY', '')
+          run_id = os.environ.get('GITHUB_RUN_ID', '')
+          print(json.dumps({
+              'status': os.environ.get('STATUS', 'failure'),
+              'repo': repo,
+              'branch': os.environ.get('GITHUB_REF_NAME', ''),
+              'commit_sha': os.environ.get('GITHUB_SHA', ''),
+              'commit_author': os.environ.get('GITHUB_ACTOR', ''),
+              'run_url': server + '/' + repo + '/actions/runs/' + run_id,
+              'log_tail': open('ci-tail.txt').read(),
+          }))
+          PYEOF
+          curl -sS -X POST "$CALLBACK_URL" \
+            -H "Authorization: Bearer $QA_AGENT_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data-binary @payload.json --max-time 20 || true
